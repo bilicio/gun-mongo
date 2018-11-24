@@ -1,5 +1,6 @@
 const {NodeAdapter} = require('gun-flint');
 const Mongojs = require('mongojs');
+const _ = require('lodash');
 
 module.exports = new NodeAdapter({
 
@@ -28,6 +29,7 @@ module.exports = new NodeAdapter({
             let query = mongo.query ? '?' + mongo.query : '';
             this.collection = mongo.collection || 'gun-mongo';
             this.db = Mongojs(`mongodb://${host}:${port}/${database}${query}`);
+            this.way = mongo.way || 'all';
 
             this.indexInBackground = mongo.indexInBackground || false;
         } else {
@@ -44,17 +46,21 @@ module.exports = new NodeAdapter({
      * @return {void}
      */
     get: function(key, done) {
-        if (this.initialized) {
+       if (this.initialized && (this.way === 'get' || this.way === 'all') ) {
             this.getCollection().findOne({_id: key}, {}, (err, result) => {
                 if (err) {
                     done(this.errors.internal)
                 } else if (!result) {
                     done(this.errors.lost);
                 } else {
-                    done(null, result.val);
+                    //console.log("resultGET:", result["_"][">"])
+                    //done(null, result["_"][">"]);
+                   // console.log("resultGET:", result)
+                    done(null, result);
                 }
             });
         }
+        done(this.errors.lost);
     },
 
     /**
@@ -67,17 +73,46 @@ module.exports = new NodeAdapter({
      * @return {void}
      */
     put: function(key, node, done) {
-        if (this.initialized) {
-            this.getCollection(key).findAndModify(
-                {
-                    query: {_id: key},
-                    update: { 
-                        key: key,
-                        val: node
-                    },
-                    upsert: true
-                }, done
-            );
+        if (this.initialized && (this.way === 'put' || this.way === 'all')) {
+            
+            this.getCollection().findOne({_id: key}, {}, (err, result) => {
+               // console.log("resultPUT:", result)
+
+                if(result){
+                    /*if(key === Object.getOwnPropertyNames(result["_"][">"])[0]){
+                        console.log("EQUAL:", key)
+                    }*/
+                    //console.log("resultNICE:", result, "NODE:", node, )
+                    const c = _.merge({}, result, node);
+                   // console.log("juntos", c);
+
+                    this.getCollection(key).findAndModify(
+                        {
+                            query: {_id: key},
+                            update: c,
+                            upsert: true
+                        }, (err, result) => {
+                           // console.log("resultPUTEND:", result)
+                            done
+                        }
+                    );
+
+                }else{
+                    this.getCollection(key).findAndModify(
+                        {
+                            query: {_id: key},
+                            update: node,
+                            upsert: true
+                        }, (err, result) => {
+                            //console.log("resultPUTEND:", result)
+                            done
+                        }
+                    );
+                }
+
+                
+            })
+            
         }
     },
 
