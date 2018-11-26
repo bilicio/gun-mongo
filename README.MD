@@ -15,7 +15,7 @@ Contrast this with [`gun-mongo-key`](https://github.com/sjones6/gun-mongo-key). 
 
 # Installation
 
-`yarn add gun-mongo` or `npm install gun-mongo`.
+`yarn add github.com/bilicio/gun-mongo` or `npm install github.com/bilicio/gun-mongo`.
 
 ```javascript
 
@@ -35,7 +35,8 @@ const gun = new Gun({
         port: '27017',
         database: 'gun',
         collection: 'gun-mongo',
-        query: ''
+        query: '',
+        way:'all' // put/get/all
     }
 });
 ```
